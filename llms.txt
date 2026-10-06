@@ -1,0 +1,12 @@
+# @haruhimemoe/invites
+
+> Invites as consent: any ask that leads to notifications is an invite the recipient accepts first. zod schemas for invites and their terms (role, deliverables, deadlines, reminder plan, payment note, proposed time), a pure state machine (pending, countered, accepted, declined, withdrawn, cancelled, expired) with actor checks, resend cooldowns, blocks, rate limits, reminder gating and inbox grouping. zod peer only. ESM for Node 22.12+, Bun, Deno, browsers and bundlers.
+
+Main exports: `createInvite`, `transition`, `allowedActions`, `effectiveState`, `canSend`, `checkBlocks`, `checkCooldown`, `checkRateLimit`, `canRemind`, `inbox`, `InviteSchema`, `InviteDraftSchema`, `InviteTermsSchema`. One entry point: `@haruhimemoe/invites`.
+
+## Docs
+
+- [Install](https://github.com/haruhimemoe/invites#install)
+- [Quick start](https://github.com/haruhimemoe/invites#quick-start)
+- [States](https://github.com/haruhimemoe/invites#states): the transition table and error order
+- [API](https://github.com/haruhimemoe/invites#api): every export
