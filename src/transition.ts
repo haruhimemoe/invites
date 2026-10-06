@@ -7,6 +7,7 @@
  * @modified Tue Oct 6, 2026
  */
 
+import { z } from "zod";
 import { fail, type InviteError, ok, type Result } from "./result.js";
 import type {
   Actor,
@@ -17,6 +18,11 @@ import type {
   InviteTerms,
 } from "./schema.js";
 import { checkTerms, diffTerms } from "./terms.js";
+
+const isoTime = z.iso.datetime();
+/** A stored or passed time is usable: a Date that parses, an ISO UTC string the schema takes. */
+const badDate = (d: Date) => Number.isNaN(d.getTime());
+const badIso = (s: string) => !isoTime.safeParse(s).success;
 
 /** What a party can do to an invite. A counter carries the full new terms. */
 export type InviteAction<T extends InviteTerms = InviteTerms> =
@@ -36,7 +42,7 @@ const RULES: Record<InviteActionType, { from: readonly InviteState[]; who: strin
   counter: { from: OPEN, who: "awaiting" },
   cancel: { from: OPEN, who: "sender" },
   withdraw: { from: ["accepted"], who: "party" },
-  expire: { from: OPEN, who: "anyone" },
+  expire: { from: OPEN, who: "party-or-system" },
 };
 
 const NEXT: Record<InviteActionType, InviteState> = {
@@ -49,7 +55,7 @@ const NEXT: Record<InviteActionType, InviteState> = {
 };
 
 const mayAct = (invite: Invite, who: string, actor: Actor): boolean => {
-  if (who === "anyone") return true;
+  if (who === "party-or-system" && actor === "system") return true;
   if (actor === "system") return false;
   if (who === "awaiting") return actor === invite.awaiting;
   if (who === "recipient") return actor === invite.awaiting && actor === invite.to;
@@ -68,7 +74,8 @@ export function isOpen(invite: Invite): boolean {
 }
 
 /**
- * Whether an open invite is past its answer deadline. Expired at `expiresAt` exactly.
+ * Whether an open invite is past its answer deadline. Expired at `expiresAt` exactly. An
+ * unparseable `expiresAt` counts as expired, so a bad row never stays answerable.
  * Accepted and closed invites never count as expired.
  * @function isExpired
  * @param {Invite} invite - The invite.
@@ -76,7 +83,8 @@ export function isOpen(invite: Invite): boolean {
  * @returns {boolean} True when open and `now >= expiresAt`.
  */
 export function isExpired(invite: Invite, now: Date): boolean {
-  return isOpen(invite) && now.getTime() >= Date.parse(invite.expiresAt);
+  const end = Date.parse(invite.expiresAt);
+  return isOpen(invite) && (Number.isNaN(end) || now.getTime() >= end);
 }
 
 /**
@@ -138,7 +146,9 @@ export function createInvite<D extends InviteDraft>(
   draft: D,
   now: Date,
 ): Result<D & Omit<Invite, keyof InviteDraft>> {
+  if (badDate(now)) return fail("bad-input", "now is not a valid date");
   if (draft.from === draft.to) return fail("bad-input", "can't invite yourself");
+  if (badIso(draft.expiresAt)) return fail("bad-input", "expiresAt is not an ISO UTC time");
   if (!(Date.parse(draft.expiresAt) > now.getTime())) {
     return fail("bad-input", "expiresAt must be after now");
   }
@@ -177,6 +187,7 @@ export function transition<T extends Invite>(
   actor: Actor,
   now: Date,
 ): Result<T> {
+  if (badDate(now)) return fail("bad-input", "now is not a valid date");
   const refused = gate(invite, action.type, actor, now);
   if (refused) return { ok: false, error: refused };
   const last = invite.history.at(-1);
@@ -198,7 +209,7 @@ export function transition<T extends Invite>(
     if (problem) return fail("bad-input", problem);
     const changes = diffTerms(invite.terms, action.terms);
     if (changes.length === 0) return fail("no-change", "counter has the same terms");
-    if (!(Date.parse(action.expiresAt) > now.getTime())) {
+    if (badIso(action.expiresAt) || !(Date.parse(action.expiresAt) > now.getTime())) {
       return fail("bad-input", "expiresAt must be after now");
     }
     entry.changes = changes;

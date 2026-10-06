@@ -59,7 +59,7 @@ export const DeadlineSchema = z.object({ label: label(100), at: iso() });
 
 export const ReminderSchema = z.object({
   deadline: label(100),
-  before: z.number().int().min(0).max(525_600),
+  before: z.number().int().min(1).max(525_600),
 });
 
 export const InviteTermsSchema = z.object({
@@ -125,7 +125,7 @@ export const BlockSchema = z.union([
 ]);
 
 export type OsuUserId = z.infer<typeof OsuUserIdSchema>;
-export type InviteKind = (typeof INVITE_KINDS)[number];
+export type KnownInviteKind = (typeof INVITE_KINDS)[number];
 export type InviteState = z.infer<typeof InviteStateSchema>;
 export type HistoryAction = z.infer<typeof HistoryActionSchema>;
 export type InviteContext = z.infer<typeof InviteContextSchema>;

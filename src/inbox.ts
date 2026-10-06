@@ -62,7 +62,11 @@ export function inbox<T extends Invite>(
     } else box.past.push(invite);
   }
   const byExpiry = (a: T, b: T) => Date.parse(a.expiresAt) - Date.parse(b.expiresAt) || byId(a, b);
-  const lastAt = (i: T) => Date.parse(i.history.at(-1)?.at ?? i.createdAt);
+  // An open invite that ran out changed last at its expiresAt.
+  const lastAt = (i: T) => {
+    const at = Date.parse(i.history.at(-1)?.at ?? i.createdAt);
+    return effectiveState(i, now) === i.state ? at : Math.max(at, Date.parse(i.expiresAt));
+  };
   box.needsMyAnswer.sort(byExpiry);
   box.waitingOnThem.sort(byExpiry);
   box.active.sort((a, b) => {

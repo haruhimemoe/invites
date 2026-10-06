@@ -16,7 +16,6 @@ export {
   checkBlocks,
   checkCooldown,
   checkRateLimit,
-  type SendRefusal,
   type SendTarget,
 } from "./rules.js";
 export * from "./schema.js";

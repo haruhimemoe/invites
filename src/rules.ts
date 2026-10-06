@@ -12,10 +12,7 @@ import type { Block, Invite } from "./schema.js";
 /** The parts of an invite the send rules look at. A full invite works too. */
 export type SendTarget = Pick<Invite, "from" | "to" | "kind" | "context">;
 
-/** Why an invite can't be sent. `until` is when a cooldown ends; `block` is the matching block. */
-export type SendRefusal = "blocked" | "cooldown" | "rate-limit";
-
-/** A rule's answer. */
+/** A rule's answer. `until` is when a cooldown ends; `block` is the matching block. */
 export type Check =
   | { ok: true }
   | { ok: false; reason: "blocked"; block: Block }
@@ -29,7 +26,7 @@ const PASS: Check = { ok: true };
  * Whether the recipient blocked the sender, or blocked the invite's app scope. A user block
  * matches `by === to && user === from`. A scope block matches when `by === to`, the app is the
  * same, and every scope id in the block equals the invite's (a block on a lineage covers its
- * editions). Run it over open invites after a new block to find ones to cancel.
+ * editions; an empty scope blocks the whole app). Run it over open invites after a new block to find ones to cancel.
  * @function checkBlocks
  * @param {Pick<SendTarget, "from" | "to" | "context">} target - The invite or draft.
  * @param {Block[]} blocks - The recipient's blocks (others are ignored).
@@ -55,6 +52,7 @@ export function checkBlocks(
  * Whether the recipient declined a matching invite less than `days` days ago. Matching means
  * the same sender, recipient, kind and app (scope ids don't matter, so changing one doesn't dodge
  * it). Only a decline by the recipient counts. Resending is allowed again at the exact end.
+ * `days` must be a finite number >= 0.
  * @function checkCooldown
  * @param {SendTarget} target - The draft.
  * @param {Invite[]} previous - Earlier invites; non-matching ones are ignored.

@@ -47,7 +47,7 @@ const expected = (
     counter: actor === inv.awaiting,
     cancel: actor === HOST,
     withdraw: actor === HOST || actor === GUEST,
-    expire: true,
+    expire: actor !== STRANGER,
   }[type];
   if (!allowed) return "bad-actor";
   // Only open invites expire; withdraw is the one action from a non-open state.
@@ -251,6 +251,28 @@ describe("createInvite", () => {
     ],
   ])("rejects %s", (_name, d) => {
     expect(createInvite(d, T0)).toMatchObject({ ok: false, error: { code: "bad-input" } });
+  });
+});
+
+describe("bad times", () => {
+  it("refuses an invalid now, a date-only or garbage expiresAt, and expires a garbage stored one", () => {
+    const bad = new Date("x");
+    expect(transition(invite(), { type: "accept" }, GUEST, bad)).toMatchObject({
+      error: { code: "bad-input" },
+    });
+    expect(createInvite(draft(), bad)).toMatchObject({ error: { code: "bad-input" } });
+    expect(createInvite(draft({ expiresAt: "2026-10-09" }), T0)).toMatchObject({
+      error: { code: "bad-input" },
+    });
+    const counter = { type: "counter" as const, terms: NEW_TERMS, expiresAt: "2026-10-09" };
+    expect(transition(invite(), counter, GUEST, T0)).toMatchObject({
+      error: { code: "bad-input" },
+    });
+    const garbage = invite("pending", { expiresAt: "garbage" });
+    expect(isExpired(garbage, T0)).toBe(true);
+    expect(transition(garbage, { type: "accept" }, GUEST, T0)).toMatchObject({
+      error: { code: "expired" },
+    });
   });
 });
 

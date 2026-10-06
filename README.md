@@ -61,7 +61,7 @@ Nothing throws. `createInvite` and `transition` return `{ ok: true, value }` or 
 | pending, countered | `counter` (full new terms and a new `expiresAt`) | whoever is `awaiting` | countered |
 | pending, countered | `cancel` | the sender, any time | cancelled |
 | accepted | `withdraw` | either side | withdrawn |
-| pending, countered | `expire` | anyone, or `"system"` | expired |
+| pending, countered | `expire` | either side, or `"system"` | expired |
 
 `awaiting` is the user who must answer: the recipient at first, then the other side after each counter, `null` once accepted or closed. A sender answering a counter accepts, counters again or cancels. The `"system"` actor may only expire.
 
@@ -70,9 +70,9 @@ Checks run in this order, and the first failure is the error code:
 1. `bad-state`: the action isn't allowed from this state.
 2. `bad-actor`: this actor may not do it.
 3. `expired` for accept, decline and counter at or after `expiresAt`. `not-expired` for expire before it.
-4. `bad-input`: `now` is before the last history entry, or the counter's terms or `expiresAt` are bad. `no-change` for a counter with the same terms.
+4. `bad-input`: `now` is an invalid date or before the last history entry, or the counter's terms or `expiresAt` are bad. `no-change` for a counter with the same terms.
 
-An open invite is expired from `expiresAt` exactly. Transitions don't expire it for you: they refuse with `expired` and you apply `{ type: "expire" }`. `effectiveState` and `inbox` already show it as expired. Accepted invites never expire.
+An open invite is expired from `expiresAt` exactly (an unparseable `expiresAt` counts as expired). Transitions don't expire it for you: they refuse with `expired` and you apply `{ type: "expire" }`. `effectiveState` and `inbox` already show it as expired. Accepted invites never expire.
 
 Every change appends to `history`: `{ at, by, action, fromState, toState }`, and a counter adds `changes` (`{ field, before?, after? }` per changed top-level term).
 
@@ -87,12 +87,12 @@ Every change appends to `history`: `{ at, by, action, fromState, toState }`, and
 | `InviteTermsSchema` | `role?`, `deliverables`, `deadlines`, `reminders`, `payment?` (a note, never money), `proposedTime?` |
 | `InviteContextSchema` | `{ app, scope }`. `scope` maps names to ids: `{ lineage, edition, match }` |
 | `DeadlineSchema` | `{ label, at }` |
-| `ReminderSchema` | `{ deadline, before }`: a deadline label and minutes ahead of it |
+| `ReminderSchema` | `{ deadline, before }`: a deadline label and minutes ahead of it (1 or more) |
 | `ReminderPrefsSchema` | `{ reminders, mutedApps, mutedKinds, mutedInvites }` |
 | `BlockSchema` | `{ by, user }` or `{ by, app, scope }` |
 | `HistoryEntrySchema`, `TermChangeSchema`, `ActorSchema`, `OsuUserIdSchema`, `InviteKindSchema`, `InviteStateSchema`, `HistoryActionSchema` | the parts |
 
-Times are ISO strings in UTC (`2026-10-06T12:00:00.000Z`, what `toISOString()` makes). User ids are osu! user ids. `INVITE_KINDS` lists the kinds the haruhime tools use; `kind` takes any string, so add your own. `INVITE_STATES` and `HISTORY_ACTIONS` list the rest. Every schema has a matching type (`Invite`, `InviteTerms`, ...).
+Times are ISO strings in UTC (`2026-10-06T12:00:00.000Z`, what `toISOString()` makes). User ids are osu! user ids. `INVITE_KINDS` (type `KnownInviteKind`) lists the kinds the haruhime tools use; `kind` takes any string, so add your own. `INVITE_STATES` and `HISTORY_ACTIONS` list the rest. Every schema has a matching type (`Invite`, `InviteTerms`, ...).
 
 The schemas have no refinements, so `.extend()` keeps everything:
 
@@ -120,7 +120,7 @@ All pure: you pass in what they need.
 
 | Export | Refuses with |
 | --- | --- |
-| `checkBlocks(target, blocks)` | `blocked` when the recipient (`by === to`) blocked the sender (`user`) or the app scope. A scope block matches when every id in it equals the invite's, so a block on `{ lineage }` covers its editions. Run it over open invites after a new block to find ones to cancel. |
+| `checkBlocks(target, blocks)` | `blocked` when the recipient (`by === to`) blocked the sender (`user`) or the app scope. A scope block matches when every id in it equals the invite's, so a block on `{ lineage }` covers its editions and `scope: {}` covers the whole app. Run it over open invites after a new block to find ones to cancel. |
 | `checkCooldown(target, previous, now, { days })` | `cooldown` with `until` when the recipient declined a matching invite (same sender, recipient, kind and app) less than `days` days ago. Scope ids don't count, so a new edition doesn't reset it. |
 | `checkRateLimit({ sentInWindow, limit })` | `rate-limit` once `sentInWindow >= limit`. You count over your own window. |
 | `canSend(target, now, { previous, blocks, sentInWindow, limit, cooldownDays })` | The first of the three, in that order. |

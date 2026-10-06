@@ -23,7 +23,7 @@ const canonical = (value: unknown): string => {
 
 /**
  * Why a set of terms doesn't hold together, or null when it does: deadline labels must be
- * unique and every reminder must name one of them.
+ * unique, every reminder must name one of them, and no reminder may repeat.
  * @function checkTerms
  * @param {InviteTerms} terms - Parsed terms (extra fields from an extended schema are fine).
  * @returns {string | null} The first problem found, or null.
@@ -34,7 +34,11 @@ export function checkTerms(terms: InviteTerms): string | null {
     if (labels.has(deadline.label)) return `deadline "${deadline.label}" is listed twice`;
     labels.add(deadline.label);
   }
+  const plan = new Set<string>();
   for (const reminder of terms.reminders) {
+    const key = `${reminder.deadline}@${reminder.before}`;
+    if (plan.has(key)) return `reminder "${key}" is listed twice`;
+    plan.add(key);
     if (!labels.has(reminder.deadline))
       return `reminder names unknown deadline "${reminder.deadline}"`;
   }

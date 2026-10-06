@@ -27,6 +27,9 @@ describe("checkTerms", () => {
       /twice/,
     );
     expect(checkTerms({ ...base, reminders: [{ deadline: "x", before: 0 }] })).toMatch(/unknown/);
+    expect(checkTerms({ ...base, reminders: [...base.reminders, ...base.reminders] })).toMatch(
+      /twice/,
+    );
   });
 });
 

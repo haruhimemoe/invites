@@ -53,8 +53,8 @@ describe("schemas", () => {
     ["offset time", { ...invite(), expiresAt: "2026-10-06T12:00:00+02:00" }],
     ["empty kind", { ...invite(), kind: " " }],
     [
-      "negative reminder",
-      { ...invite(), terms: { ...invite().terms, reminders: [{ deadline: "x", before: -1 }] } },
+      "zero reminder",
+      { ...invite(), terms: { ...invite().terms, reminders: [{ deadline: "x", before: 0 }] } },
     ],
     ["system as awaiting", { ...invite(), awaiting: "system" }],
   ])("rejects %s", (_name, value) => {

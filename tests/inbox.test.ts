@@ -45,7 +45,7 @@ describe("inbox", () => {
     expect(ids(box.needsMyAnswer)).toEqual(["p-soon", "p-late"]);
     expect(ids(box.waitingOnThem)).toEqual(["c"]);
     expect(ids(box.active)).toEqual(["a-near", "a-far", "a-none"]);
-    expect(ids(box.past)).toEqual(["x-new", "a-done", "d-old", "p-expired"]);
+    expect(ids(box.past)).toEqual(["p-expired", "x-new", "a-done", "d-old"]);
   });
 
   it("flips for the sender and drops strangers' invites", () => {
