@@ -68,6 +68,6 @@ describe("src", () => {
     expect(source).not.toMatch(/from "node:|require\(|process\.|Buffer\b/);
     expect(source.startsWith(`/**\n * @file ${file}\n`)).toBe(true);
     expect(source.split("\n").length).toBeLessThan(250);
-    expect(source).not.toMatch(/—/);
+    expect(source.includes(String.fromCharCode(0x2014))).toBe(false); // no em dashes
   });
 });
