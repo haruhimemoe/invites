@@ -4,7 +4,7 @@
  *       chains, expiry at the exact boundary, createInvite, and purity.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Mon Oct 12, 2026
  */
 
 import { describe, expect, it } from "vitest";
@@ -45,7 +45,7 @@ const expected = (
     accept: actor === inv.awaiting,
     decline: actor === inv.awaiting && actor === GUEST,
     counter: actor === inv.awaiting,
-    cancel: actor === HOST,
+    cancel: actor === HOST || actor === "system",
     withdraw: actor === HOST || actor === GUEST,
     expire: actor !== STRANGER,
   }[type];
@@ -109,15 +109,75 @@ describe("accepted and closed invites", () => {
     });
   });
 
-  it("system can't withdraw or accept", () => {
+  it("system can only cancel or expire", () => {
     expect(allowedActions(invite("accepted"), "system", T0)).toEqual([]);
-    expect(allowedActions(invite(), "system", T0)).toEqual([]);
-    expect(allowedActions(invite(), "system", at(DAY))).toEqual(["expire"]);
+    expect(allowedActions(invite(), "system", T0)).toEqual(["cancel"]);
+    expect(allowedActions(invite(), "system", at(DAY))).toEqual(["cancel", "expire"]);
   });
 
   it("the sender, awaiting a counter, may accept, counter or cancel but not decline", () => {
     expect(allowedActions(invite("countered"), HOST, T0)).toEqual(["accept", "counter", "cancel"]);
     expect(allowedActions(invite("pending"), GUEST, T0)).toEqual(["accept", "decline", "counter"]);
+  });
+});
+
+describe("system cancel", () => {
+  it("closes a pending invite like the sender's cancel", () => {
+    const r = transition(invite("pending"), { type: "cancel" }, "system", T0);
+    if (!r.ok) throw new Error(r.error.message);
+    expect(r.value.state).toBe("cancelled");
+    expect(r.value.awaiting).toBeNull();
+    expect(r.value.history.at(-1)).toMatchObject({
+      by: "system",
+      action: "cancel",
+      fromState: "pending",
+      toState: "cancelled",
+    });
+  });
+
+  it("closes a countered invite like the sender's cancel", () => {
+    const r = transition(invite("countered"), { type: "cancel" }, "system", T0);
+    if (!r.ok) throw new Error(r.error.message);
+    expect(r.value.state).toBe("cancelled");
+    expect(r.value.awaiting).toBeNull();
+    expect(r.value.history.at(-1)).toMatchObject({
+      by: "system",
+      action: "cancel",
+      fromState: "countered",
+      toState: "cancelled",
+    });
+  });
+
+  it("refuses an accepted invite with bad-state", () => {
+    expect(transition(invite("accepted"), { type: "cancel" }, "system", T0)).toMatchObject({
+      ok: false,
+      error: { code: "bad-state" },
+    });
+  });
+
+  it("succeeds past expiresAt, same as a sender's cancel", () => {
+    const r = transition(invite(), { type: "cancel" }, "system", at(DAY));
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.value.state).toBe("cancelled");
+  });
+
+  it("still refuses accept, decline, counter and withdraw with bad-actor", () => {
+    const inv = invite();
+    expect(transition(inv, { type: "accept" }, "system", T0)).toMatchObject({
+      ok: false,
+      error: { code: "bad-actor" },
+    });
+    expect(transition(inv, { type: "decline" }, "system", T0)).toMatchObject({
+      ok: false,
+      error: { code: "bad-actor" },
+    });
+    expect(
+      transition(inv, { type: "counter", terms: NEW_TERMS, expiresAt: iso(DAY) }, "system", T0),
+    ).toMatchObject({ ok: false, error: { code: "bad-actor" } });
+    expect(transition(invite("accepted"), { type: "withdraw" }, "system", T0)).toMatchObject({
+      ok: false,
+      error: { code: "bad-actor" },
+    });
   });
 });
 

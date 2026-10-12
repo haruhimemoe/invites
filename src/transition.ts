@@ -4,7 +4,7 @@
  *       helpers. Pure: inputs are never mutated and `now` is always passed in.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Mon Oct 12, 2026
  */
 
 import { z } from "zod";
@@ -40,7 +40,7 @@ const RULES: Record<InviteActionType, { from: readonly InviteState[]; who: strin
   accept: { from: OPEN, who: "awaiting" },
   decline: { from: OPEN, who: "recipient" },
   counter: { from: OPEN, who: "awaiting" },
-  cancel: { from: OPEN, who: "sender" },
+  cancel: { from: OPEN, who: "sender-or-system" },
   withdraw: { from: ["accepted"], who: "party" },
   expire: { from: OPEN, who: "party-or-system" },
 };
@@ -55,11 +55,10 @@ const NEXT: Record<InviteActionType, InviteState> = {
 };
 
 const mayAct = (invite: Invite, who: string, actor: Actor): boolean => {
-  if (who === "party-or-system" && actor === "system") return true;
-  if (actor === "system") return false;
+  if (actor === "system") return who === "party-or-system" || who === "sender-or-system";
   if (who === "awaiting") return actor === invite.awaiting;
   if (who === "recipient") return actor === invite.awaiting && actor === invite.to;
-  if (who === "sender") return actor === invite.from;
+  if (who === "sender" || who === "sender-or-system") return actor === invite.from;
   return actor === invite.from || actor === invite.to;
 };
 
@@ -177,7 +176,7 @@ export function createInvite<D extends InviteDraft>(
  * @function transition
  * @param {Invite} invite - The current invite; never mutated.
  * @param {InviteAction} action - What to do.
- * @param {Actor} actor - Who does it: an osu! user id or "system" (which may only expire).
+ * @param {Actor} actor - Who does it: an osu! user id or "system" (which may only cancel or expire).
  * @param {Date} now - The current time.
  * @returns {Result<Invite>} The new invite, or a typed error.
  */

@@ -59,11 +59,11 @@ Nothing throws. `createInvite` and `transition` return `{ ok: true, value }` or 
 | pending, countered | `accept` | whoever is `awaiting` | accepted |
 | pending, countered | `decline` | the recipient, when awaiting | declined |
 | pending, countered | `counter` (full new terms and a new `expiresAt`) | whoever is `awaiting` | countered |
-| pending, countered | `cancel` | the sender, any time | cancelled |
+| pending, countered | `cancel` | the sender, or `"system"` | cancelled |
 | accepted | `withdraw` | either side | withdrawn |
 | pending, countered | `expire` | either side, or `"system"` | expired |
 
-`awaiting` is the user who must answer: the recipient at first, then the other side after each counter, `null` once accepted or closed. A sender answering a counter accepts, counters again or cancels. The `"system"` actor may only expire.
+`awaiting` is the user who must answer: the recipient at first, then the other side after each counter, `null` once accepted or closed. A sender answering a counter accepts, counters again or cancels. The `"system"` actor may only cancel or expire.
 
 Checks run in this order, and the first failure is the error code:
 
