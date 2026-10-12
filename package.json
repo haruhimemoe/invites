@@ -1,6 +1,6 @@
 {
   "name": "@haruhimemoe/invites",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Invites as consent: zod schemas for invites and their terms, a pure state machine (pending, countered, accepted, declined, withdrawn, cancelled, expired), resend cooldowns, blocks, rate limits, reminder gating and inbox grouping. No dependencies besides zod.",
   "keywords": [
     "invite",

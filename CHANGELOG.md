@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-12
+
 ### Changed
 
 - CI runs CodeQL and a gitleaks scan of the full git history, and Dependabot covers dependencies and pinned actions. Dependencies are on their latest versions.
+- `cancel` takes `"system"` as its actor from `pending` or `countered`, so an app can close an open invite whose subject went away. Other actions still refuse it.
 
 ## [0.1.0] - 2026-10-06
 
@@ -21,5 +24,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `canRemind`: reminders for accepted invites per the agreed plan and the recipient's prefs.
 - `inbox`: needs my answer, waiting on them, active, past.
 
-[Unreleased]: https://github.com/haruhimemoe/invites/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/haruhimemoe/invites/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/haruhimemoe/invites/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/haruhimemoe/invites/releases/tag/v0.1.0
